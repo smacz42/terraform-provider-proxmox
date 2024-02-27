@@ -49,6 +49,7 @@ const (
 	dvFeaturesNesting                   = false
 	dvFeaturesKeyControl                = false
 	dvFeaturesFUSE                      = false
+	dvHookScript                        = ""
 	dvMemoryDedicated                   = 512
 	dvMemorySwap                        = 0
 	dvMountPointACL                     = false
@@ -100,6 +101,7 @@ const (
 	mkFeaturesKeyControl                = "keyctl"
 	mkFeaturesFUSE                      = "fuse"
 	mkFeaturesMountTypes                = "mount"
+	mkHookScriptFileID                  = ""
 	mkInitialization                    = "initialization"
 	mkInitializationDNS                 = "dns"
 	mkInitializationDNSDomain           = "domain"
@@ -374,6 +376,12 @@ func Container() *schema.Resource {
 				},
 				MaxItems: 1,
 				MinItems: 0,
+			},
+			mkHookScriptFileID: {
+				Type:        schema.TypeString,
+				Description: "A hook script",
+				Optional:    true,
+				Default:     dvHookScript,
 			},
 			mkInitialization: {
 				Type:        schema.TypeList,
@@ -966,6 +974,13 @@ func containerCreateClone(ctx context.Context, d *schema.ResourceData, m interfa
 
 	updateBody.StartupBehavior = containerGetStartupBehavior(d)
 
+	hookScript := d.Get(mkHookScriptFileID).(string)
+	if len(hookScript) > 0 {
+		updateBody.HookScript = &hookScript
+	} else {
+		updateBody.Delete = append(updateBody.Delete, "hookscript")
+	}
+
 	console := d.Get(mkConsole).([]interface{})
 
 	if len(console) > 0 {
@@ -1314,6 +1329,11 @@ func containerCreateCustom(ctx context.Context, d *schema.ResourceData, m interf
 	features, err := containerGetFeatures(resource, d)
 	if err != nil {
 		return diag.FromErr(err)
+	}
+
+	hookScript := d.Get(mkHookScriptFileID).(string)
+	if len(hookScript) > 0 {
+		createBody.HookScript = &hookScript
 	}
 
 	initialization := d.Get(mkInitialization).([]interface{})
@@ -2536,6 +2556,15 @@ func containerUpdate(ctx context.Context, d *schema.ResourceData, m interface{})
 
 	if d.HasChange(mkTemplate) {
 		updateBody.Template = &template
+	}
+
+	if d.HasChange(mkHookScriptFileID) {
+		hookScript := d.Get(mkHookScriptFileID).(string)
+		if len(hookScript) > 0 {
+			updateBody.HookScript = &hookScript
+		} else {
+			updateBody.Delete = append(updateBody.Delete, "hookscript")
+		}
 	}
 
 	// Prepare the new console configuration.
