@@ -101,7 +101,7 @@ const (
 	mkFeaturesKeyControl                = "keyctl"
 	mkFeaturesFUSE                      = "fuse"
 	mkFeaturesMountTypes                = "mount"
-	mkHookScriptFileID                  = ""
+	mkHookScriptFileID                  = "hook_script_file_id"
 	mkInitialization                    = "initialization"
 	mkInitializationDNS                 = "dns"
 	mkInitializationDNSDomain           = "domain"
@@ -1332,9 +1332,6 @@ func containerCreateCustom(ctx context.Context, d *schema.ResourceData, m interf
 	}
 
 	hookScript := d.Get(mkHookScriptFileID).(string)
-	if len(hookScript) > 0 {
-		createBody.HookScript = &hookScript
-	}
 
 	initialization := d.Get(mkInitialization).([]interface{})
 	initializationDNSDomain := dvInitializationDNSDomain
@@ -1633,6 +1630,7 @@ func containerCreateCustom(ctx context.Context, d *schema.ResourceData, m interf
 		DatastoreID:          &diskDatastoreID,
 		DedicatedMemory:      &memoryDedicated,
 		Features:             features,
+		HookScript:           &hookScript,
 		MountPoints:          mountPointArray,
 		NetworkInterfaces:    networkInterfaceArray,
 		OSTemplateFileVolume: &operatingSystemTemplateFileID,
@@ -1650,6 +1648,10 @@ func containerCreateCustom(ctx context.Context, d *schema.ResourceData, m interf
 
 	if description != "" {
 		createBody.Description = &description
+	}
+
+	if len(hookScript) > 0 {
+		createBody.HookScript = &hookScript
 	}
 
 	if initializationDNSDomain != "" {
